@@ -11,7 +11,6 @@ from .models import FechamentoMensal, Ingrediente, RegistroEstoqueMensal
 
 
 class CalcularCompraTests(TestCase):
-    # Critérios de aceitação CA01 a CA08 da especificação funcional
 
     def setUp(self):
         # Reutiliza o mesmo período para manter cada cenário focado na regra testada
@@ -172,7 +171,7 @@ class ApiFluxoCompletoTests(APITestCase):
     # Exercita o fluxo via API: cadastro, fechamento, registro, cálculo e lista de compras
 
     def setUp(self):
-        # A API exige autenticação; os testes de fluxo simulam um usuário já logado
+        # A API exige autenticação, os testes de fluxo simulam um usuário já logado
         usuario = get_user_model().objects.create_user(username="teste", password="senha123")
         self.client.force_authenticate(user=usuario)
 

@@ -1,8 +1,8 @@
-# Regras de negócio do controle de estoque.
+# Regras de negócio do controle de estoque
 
 # Este módulo é o coração do domínio: concentra a regra de cálculo de compra
 # (RN da falta, do vencimento e do caso normal) para que ela não fique
-# espalhada entre controllers/views.
+# espalhada entre controllers/views
 
 from dataclasses import dataclass
 from datetime import date
@@ -14,9 +14,9 @@ from django.utils import timezone
 
 from .models import FechamentoMensal, Ingrediente, RegistroEstoqueMensal
 
-# Aplica 20% de margem quando houve falta para reduzir a chance de o problema se repetir.
+# Aplica 20% de margem quando houve falta para reduzir a chance de o problema se repetir
 MARGEM_SEGURANCA_FALTA = Decimal("1.20")
-# Centraliza o zero como Decimal para não misturar tipos nos cálculos financeiros.
+# Centraliza o zero como Decimal para não misturar tipos nos cálculos financeiros
 ZERO = Decimal("0")
 
 
@@ -29,25 +29,25 @@ def _dec(valor) -> Decimal:
 def arredondar(quantidade: Decimal, unidade: str) -> Decimal:
     # Unidades indivisíveis são arredondadas para cima; as demais mantêm casas decimais
     if unidade == Ingrediente.Unidade.UNIDADE:
-        # Itens contáveis são comprados por inteiro, sempre arredondando para cima.
+        # Itens contáveis são comprados por inteiro, sempre arredondando para cima
         return quantidade.to_integral_value(rounding=ROUND_CEILING)
-    # Para peso e volume, preserva duas casas usando o arredondamento comercial.
+    # Para peso e volume, preserva duas casas usando o arredondamento comercial
     return quantidade.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 def calcular_compra(ingrediente: Ingrediente, registro: RegistroEstoqueMensal) -> Decimal:
     # Regra central do sistema: prioridade FALTA > VENCIMENTO > NORMAL
     if registro.faltou:
-        # A falta tem prioridade: usa o consumo real com margem, mesmo que a meta fosse menor.
+        # A falta tem prioridade: usa o consumo real com margem, mesmo que a meta fosse menor
         quantidade = _dec(registro.consumo) * MARGEM_SEGURANCA_FALTA
     elif registro.venceu:
-        # Se houve vencimento, repõe a meta inteira para substituir o estoque que se perdeu.
+        # Se houve vencimento, repõe a meta inteira para substituir o estoque que se perdeu
         quantidade = _dec(ingrediente.meta)
     else:
-        # No cenário normal, compra apenas o necessário para voltar à meta definida.
+        # No cenário normal, compra apenas o necessário para voltar à meta definida
         quantidade = _dec(ingrediente.meta) - _dec(registro.estoque_final)
 
-    # Nunca retorna uma compra negativa quando o estoque final já passou da meta.
+    # Nunca retorna uma compra negativa quando o estoque final já passou da meta
     quantidade = max(quantidade, ZERO)
     return arredondar(quantidade, ingrediente.unidade)
 
@@ -60,13 +60,12 @@ def sugerir_nova_meta(registro: RegistroEstoqueMensal) -> Decimal | None:
 
 
 def validar_registro(registro: RegistroEstoqueMensal) -> None:
-    # Valida as regras também no domínio, protegendo-as além da camada HTTP.
+    # Valida as regras também no domínio, protegendo-as além da camada HTTP
     if registro.consumo < ZERO:
         raise ValidationError("O consumo não pode ser negativo.")
 
     # Quando há falta, o consumo reportado pode representar a demanda que faltou
-    # atender (por isso pode superar o estoque inicial) — ver exemplo da seção 20
-    # da especificação. Fora desse caso, o consumo não pode exceder o que havia.
+    # atender (por isso pode superar o estoque inicial). Fora desse caso, o consumo não pode exceder o que havia
     if not registro.faltou and registro.consumo > registro.estoque_inicial:
         raise ValidationError("O consumo não pode ser maior que o estoque inicial.")
 
@@ -76,20 +75,20 @@ def validar_registro(registro: RegistroEstoqueMensal) -> None:
 
 def processar_registro(registro: RegistroEstoqueMensal) -> RegistroEstoqueMensal:
     # Calcula estoqueFinal, estoquePerdido e quantidadeCompra de um registro
-    # Primeiro valida a entrada; os valores abaixo só são calculados para um registro coerente.
+    # Primeiro valida a entrada; os valores abaixo só são calculados para um registro coerente
     validar_registro(registro)
     ingrediente = registro.ingrediente
 
     if registro.faltou:
-        # O estoque chegou a zero antes do fim do período: nada sobrou e nada foi perdido.
+        # O estoque chegou a zero antes do fim do período: nada sobrou e nada foi perdido
         registro.estoque_final = ZERO
         registro.estoque_perdido = ZERO
     else:
-        # Sem falta, o saldo é a diferença entre o inventário inicial e o consumo informado.
+        # Sem falta, o saldo é a diferença entre o inventário inicial e o consumo informado
         registro.estoque_final = _dec(registro.estoque_inicial) - _dec(registro.consumo)
         registro.estoque_perdido = registro.estoque_final if registro.venceu else ZERO
 
-    # Finaliza o processamento aplicando a regra de compra conforme o cenário do registro.
+    # Finaliza o processamento aplicando a regra de compra conforme o cenário do registro
     registro.quantidade_compra = calcular_compra(ingrediente, registro)
     return registro
 
@@ -100,26 +99,26 @@ def calcular_fechamento(fechamento: FechamentoMensal) -> list[RegistroEstoqueMen
     if not fechamento.esta_aberto:
         raise ValidationError("Um fechamento encerrado não pode ser recalculado.")
 
-    # Carrega o ingrediente junto para não criar consultas repetidas dentro do laço.
+    # Carrega o ingrediente junto para não criar consultas repetidas dentro do laço
     registros = list(
         fechamento.registros.select_related("ingrediente").all()
     )
     for registro in registros:
-        # Persiste somente os campos controlados por este cálculo.
+        # Persiste somente os campos controlados por este cálculo
         processar_registro(registro)
         registro.save(update_fields=["estoque_final", "estoque_perdido", "quantidade_compra"])
     return registros
 
 
 def encerrar_fechamento(fechamento: FechamentoMensal) -> FechamentoMensal:
-    # Calcula todos os registros e encerra o fechamento (UC09)
+    # Calcula todos os registros e encerra o fechamento
     if not fechamento.esta_aberto:
         raise ValidationError("Este fechamento já está encerrado.")
 
     if not fechamento.registros.exists():
         raise ValidationError("O fechamento não possui registros de estoque.")
 
-    # Usa a data atual como referência para impedir uma falta registrada no futuro.
+    # Usa a data atual como referência para impedir uma falta registrada no futuro
     hoje = date.today()
     for registro in fechamento.registros.all():
         if registro.faltou and registro.data_falta and registro.data_falta > hoje:
@@ -127,7 +126,7 @@ def encerrar_fechamento(fechamento: FechamentoMensal) -> FechamentoMensal:
                 "A data da falta não pode ser posterior à data de encerramento."
             )
 
-    # Recalcula antes de fechar para garantir que os dados gravados estejam atualizados.
+    # Recalcula antes de fechar para garantir que os dados gravados estejam atualizados
     calcular_fechamento(fechamento)
 
     fechamento.status = FechamentoMensal.Status.FECHADO
@@ -138,7 +137,7 @@ def encerrar_fechamento(fechamento: FechamentoMensal) -> FechamentoMensal:
 
 @dataclass(frozen=True)
 class ItemListaCompra:
-    # Esta estrutura representa a visão enxuta enviada para a lista de compras.
+    # Esta estrutura representa a visão enxuta enviada para a lista de compras
     ingrediente_id: int
     ingrediente: str
     quantidade: Decimal
@@ -150,7 +149,7 @@ def gerar_lista_compras(fechamento: FechamentoMensal) -> list[ItemListaCompra]:
     itens = []
     registros = fechamento.registros.select_related("ingrediente").all()
     for registro in registros:
-        # Reaplica o cálculo em memória para a lista refletir os dados mais recentes.
+        # Reaplica o cálculo em memória para a lista refletir os dados mais recentes
         processar_registro(registro)
         if registro.quantidade_compra > ZERO:
             itens.append(
@@ -166,7 +165,7 @@ def gerar_lista_compras(fechamento: FechamentoMensal) -> list[ItemListaCompra]:
 
 @dataclass(frozen=True)
 class SugestaoMeta:
-    # Esta estrutura deixa explícito o comparativo usado na decisão de ajustar a meta.
+    # Esta estrutura deixa explícito o comparativo usado na decisão de ajustar a meta
     ingrediente_id: int
     ingrediente: str
     meta_atual: Decimal
@@ -176,7 +175,7 @@ class SugestaoMeta:
 def gerar_sugestoes_metas(fechamento: FechamentoMensal) -> list[SugestaoMeta]:
     # Lista as sugestões de nova meta para ingredientes que tiveram falta no período (UC08)
     sugestoes = []
-    # Somente ingredientes que faltaram podem gerar uma sugestão de aumento de meta.
+    # Somente ingredientes que faltaram podem gerar uma sugestão de aumento de meta
     registros = fechamento.registros.select_related("ingrediente").filter(faltou=True)
     for registro in registros:
         sugestoes.append(
@@ -194,7 +193,7 @@ def atualizar_meta(ingrediente: Ingrediente, nova_meta: Decimal) -> Ingrediente:
     # Confirmação explícita de uma nova meta (UC08) — nunca um efeito colateral do cálculo
     if nova_meta <= ZERO:
         raise ValidationError("A nova meta deve ser maior que zero.")
-    # Altera a meta somente quando a confirmação chega explicitamente por esta operação.
+    # Altera a meta somente quando a confirmação chega explicitamente por esta operação
     ingrediente.meta = nova_meta
     ingrediente.save(update_fields=["meta"])
     return ingrediente

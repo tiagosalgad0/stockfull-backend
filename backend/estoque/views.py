@@ -18,14 +18,14 @@ from .serializers import (
 
 
 class IngredienteViewSet(viewsets.ModelViewSet):
-    # UC01, UC02, UC03 — cadastrar, consultar e alterar ingredientes
+    # cadastra, consulta e altera ingredientes
 
     queryset = Ingrediente.objects.all()
     serializer_class = IngredienteSerializer
 
     @action(detail=True, methods=["put"], url_path="meta")
     def meta(self, request, pk=None):
-        # UC08 — confirmação explícita de uma nova meta sugerida
+        # Confirmação explícita de uma nova meta sugerida
         # Valida um payload exclusivo para evitar que esta ação altere outros dados do ingrediente
         ingrediente = self.get_object()
         serializer = AtualizarMetaSerializer(data=request.data)
@@ -44,7 +44,7 @@ class FechamentoMensalViewSet(
     viewsets.GenericViewSet,
 ):
     # UC04 — iniciar fechamento mensal, e consultas de fechamentos
-    # Fechamentos não são alterados/excluídos diretamente (CA08): o encerramento
+    # Fechamentos não são alterados/excluídos diretamente. O encerramento
     # e o cálculo têm ações próprias, explícitas no domínio
 
     # Expõe apenas criação e consulta; cálculo e encerramento ficam em ações nomeadas
@@ -53,7 +53,7 @@ class FechamentoMensalViewSet(
 
     @action(detail=True, methods=["post"], url_path="calcular")
     def calcular(self, request, pk=None):
-        # UC06 — calcula a quantidade de compra de todos os registros do fechamento
+        # Calcula a quantidade de compra de todos os registros do fechamento
         # Delega as regras ao serviço e converte erros de domínio em resposta HTTP apropriada
         fechamento = self.get_object()
         try:
@@ -64,7 +64,7 @@ class FechamentoMensalViewSet(
 
     @action(detail=True, methods=["post"], url_path="encerrar")
     def encerrar(self, request, pk=None):
-        # UC09 — encerra o fechamento após todos os registros estarem preenchidos
+        # Encerra o fechamento após todos os registros estarem preenchidos
         # O serviço garante todas as pré-condições antes de mudar o estado do fechamento
         fechamento = self.get_object()
         try:
@@ -75,7 +75,7 @@ class FechamentoMensalViewSet(
 
     @action(detail=True, methods=["get"], url_path="lista-compras")
     def lista_compras(self, request, pk=None):
-        # UC07 — gera a lista de compras consolidada do fechamento
+        # Gera a lista de compras consolidada do fechamento
         # Retorna a projeção de compras, em vez de expor diretamente os registros internos
         fechamento = self.get_object()
         itens = services.gerar_lista_compras(fechamento)
@@ -83,7 +83,7 @@ class FechamentoMensalViewSet(
 
     @action(detail=True, methods=["get"], url_path="sugestoes-metas")
     def sugestoes_metas(self, request, pk=None):
-        # UC08 — sugestões de nova meta para ingredientes que tiveram falta
+        # Sugestões de nova meta para ingredientes que tiveram falta
         # Mantém a sugestão separada da confirmação para que o ajuste continue intencional
         fechamento = self.get_object()
         sugestoes = services.gerar_sugestoes_metas(fechamento)
@@ -91,7 +91,7 @@ class FechamentoMensalViewSet(
 
 
 class RegistroEstoqueListCreateView(APIView):
-    # UC05 — registrar a situação mensal de um ingrediente dentro do fechamento
+    # Registra a situação mensal de um ingrediente dentro do fechamento
 
     def get(self, request, fechamento_id):
         # Busca o fechamento com segurança e carrega o ingrediente para a resposta completa

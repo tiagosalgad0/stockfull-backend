@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 
 class LoginView(ObtainAuthToken):
     # Precisa ficar aberta: a permissão global do projeto é IsAuthenticated,
-    # o que bloquearia o próprio login se não sobrescrevermos aqui
+    # o que bloquearia o próprio login se não sobrescrever (2 horas só nisso...)
     permission_classes = [AllowAny]
 
 

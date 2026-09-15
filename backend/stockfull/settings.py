@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 # Usa a raiz do projeto como referência para arquivos locais, como o banco SQLite
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# lê as variáveis do arquivo .env que fica só na sua máquina, assim nenhuma senha
+# lê as variáveis do arquivo .env que fica só na máquina, assim nenhuma senha
 # ou chave precisa ficar escrita direto aqui no código
 load_dotenv(BASE_DIR / '.env')
 
@@ -20,13 +20,12 @@ SECRET_KEY = os.environ.get(
     'SECRET_KEY', 'django-insecure-_-6f%a4^j_ts($8^a29g)9n-s*hs$kx-n4$bkhvxi^!b35ap0v'
 )
 
-# no seu computador fica ligado por comodidade, mas no site publicado precisa
-# estar desligado, senão qualquer erro mostra detalhes internos do sistema pra
+# no site publicado precisa estar desligado, senão qualquer erro mostra detalhes internos do sistema pra
 # quem estiver acessando
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 # lista dos endereços que têm permissão de servir o site, um por vírgula na
-# variável de ambiente (ex.: meusite.com,www.meusite.com)
+# variável de ambiente
 ALLOWED_HOSTS = [
     host.strip() for host in os.environ.get('ALLOWED_HOSTS', '').split(',') if host.strip()
 ]
@@ -47,7 +46,7 @@ INSTALLED_APPS = [
     'estoque',
 ]
 
-# Usuário customizado (tabela "usuario", colunas em português) no lugar do auth.User padrão
+# Usuário customizado (tabela "usuario")
 AUTH_USER_MODEL = 'usuarios.Usuario'
 
 REST_FRAMEWORK = {
@@ -116,10 +115,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'stockfull.wsgi.application'
 
 
-# Trocando para PostgreSQL pra que não tenha problemas em hospedar online...
-# se o serviço de hospedagem já fornecer um endereço pronto de banco (DATABASE_URL), ele é
-# usado direto; senão, monta o endereço a partir das variáveis separadas abaixo, que no seu
-# computador vêm do arquivo .env
+# Estava usando o sqlite, mas troquei para PostgreSQL pra que não tenha problemas em hospedar online...
 DATABASES = {
     'default': dj_database_url.config(
         default=(
@@ -178,8 +174,8 @@ STORAGES = {
 }
 
 
-# essas proteções só valem a pena quando o site já está publicado com endereço https,
-# por isso ficam desligadas aqui no ambiente local
+# Proteções para quando o site já estiver publicado com endereço https
+
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
