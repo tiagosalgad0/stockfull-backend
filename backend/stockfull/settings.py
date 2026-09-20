@@ -129,6 +129,12 @@ DATABASES = {
     )
 }
 
+# O pooler do Supabase (pgbouncer) às vezes entrega a conexão sem o search_path
+# padrão, e aí o Django não encontra as tabelas (erro "relation does not exist").
+# Fixamos explicitamente aqui pra não depender do que o pooler devolve.
+DATABASES['default'].setdefault('OPTIONS', {})
+DATABASES['default']['OPTIONS']['options'] = '-c search_path=public'
+
 
 # Preserva os validadores padrão caso a autenticação seja usada
 AUTH_PASSWORD_VALIDATORS = [
