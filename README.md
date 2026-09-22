@@ -52,7 +52,10 @@ O Stockfull ajuda quem administra o estoque de um restaurante a:
 
 ### 1. Entrar no sistema
 
-Acesse o endereço do frontend e faça login com um usuário e senha cadastrados (veja como criar um usuário em [Instalação e execução local](#instalação-e-execução-local)). Não existe cadastro de conta pela própria tela — usuários são criados por um administrador.
+Acesse o endereço do frontend e faça login com um usuário e senha cadastrados.
+Usuário: admin
+Senha: stockfull123
+( se for usar a versão local, veja como criar um usuário em [Instalação e execução local](#instalação-e-execução-local)). Não existe cadastro de conta pela própria tela, usuários são criados por um administrador.
 
 ### 2. Dashboard
 
@@ -67,7 +70,7 @@ Antes de qualquer fechamento, cadastre os ingredientes que o restaurante usa. Pa
 - **Meta**: quantidade que deve existir em estoque depois de cada reposição;
 - **Prazo de validade** (em dias).
 
-Você pode editar ou excluir um ingrediente a qualquer momento — a exclusão só falha se ele já tiver histórico de fechamentos vinculado.
+Você pode editar ou excluir um ingrediente a qualquer momento, a exclusão só falha se ele já tiver histórico de fechamentos vinculado.
 
 ### 4. Abrir e preencher um fechamento (menu "Fechamentos")
 
@@ -245,7 +248,7 @@ Ambos os projetos são publicados na **Vercel**, cada um a partir do seu própri
 - `rewrites` redireciona todas as rotas para `index.html`, necessário porque é uma SPA com rotas do lado do cliente (React Router).
 - A variável `VITE_API_URL` é configurada no painel da Vercel apontando para a URL pública do backend.
 
-**Banco de dados**: PostgreSQL gerenciado pelo **Supabase**, acessado através do *connection pooler* (pgbouncer). Por causa de uma particularidade do pooler — ele às vezes entrega a conexão sem o `search_path` padrão — o backend fixa `search_path=public` explicitamente na configuração de conexão (veja o comentário em [`backend/stockfull/settings.py`](backend/stockfull/settings.py)).
+**Banco de dados**: PostgreSQL gerenciado pelo **Supabase**, acessado através do *connection pooler* (pgbouncer). Por causa de uma particularidade do pooler, ele às vezes entrega a conexão sem o `search_path` padrão, o backend fixa `search_path=public` explicitamente na configuração de conexão (veja o comentário em [`backend/stockfull/settings.py`](backend/stockfull/settings.py)).
 
 ## Principais endpoints da API
 
